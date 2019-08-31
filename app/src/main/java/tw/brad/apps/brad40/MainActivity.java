@@ -1,45 +1,87 @@
 package tw.brad.apps.brad40;
-//目的手機震動
+//*目的手機震動
 //<uses-permission android:name="android.permission.VIBRATE"/>打開震動權限
 //當你看到不同版去處理,編譯工具要先才能處理
 
-//閃光燈
+//*閃光燈
 // <uses-permission android:name="android.permission.CAMERA"/>相機權限因為燈光是靠相機來處理
 //如果我這裡面會用相機,如果沒有的別下載 <uses-feature android:name="android.hardware.camera"/>
+
+//呼叫別人的相機
+//android camera intent uri
+
+
+//存取檔案
+//file porifder :https://blog.csdn.net/lmj623565791/article/details/72859156
+//（1）声明provider
+//（2）编写resource xml file
+//打開讀寫權限
+//<uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"/>
+// <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"/>
+//在res底下新增xml資料夾在新增一個檔案
+//<!-- 改page名-->
+//檔案總管加入新的版本
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.SwitchCompat;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
+import androidx.core.content.FileProvider;
 
 import android.Manifest;
 import android.content.Context;
+import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.graphics.Bitmap;
 import android.hardware.camera2.CameraAccessException;
 import android.hardware.camera2.CameraManager;
+import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.Environment;
 import android.os.VibrationEffect;
 import android.os.Vibrator;
+import android.provider.MediaStore;
 import android.util.Log;
 import android.view.View;
 import android.widget.CompoundButton;
+import android.widget.ImageView;
+
+import java.io.File;
+import java.util.Set;
 
 public class MainActivity extends AppCompatActivity {
     private Vibrator vibrator ;//震動器
     private SwitchCompat fswitch;//閃光燈按鈕
     private CameraManager cameraManager;//相機關裡員
+    private ImageView img;
+    private File sdroot;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
         //閃光燈所需的相機權限
+//        if (ContextCompat.checkSelfPermission(this,
+//                Manifest.permission.CAMERA) //改相機權限
+//                != PackageManager.PERMISSION_GRANTED) {
+//            ActivityCompat.requestPermissions(this,
+//                    new String[]{Manifest.permission.CAMERA}, //改相機權限
+//                    12);
+//        }else {
+//            init();
+//        }
+
+        //讀寫sdcard權限,要修正
         if (ContextCompat.checkSelfPermission(this,
-                Manifest.permission.CAMERA) //改相機權限
+                Manifest.permission.WRITE_EXTERNAL_STORAGE) //寫的權限
                 != PackageManager.PERMISSION_GRANTED) {
             ActivityCompat.requestPermissions(this,
-                    new String[]{Manifest.permission.CAMERA}, //改相機權限
+                    new String[]{Manifest.permission.CAMERA,
+                            Manifest.permission.READ_EXTERNAL_STORAGE,//讀的權限
+                            Manifest.permission.WRITE_EXTERNAL_STORAGE,//寫的權限
+                    },
                     12);
         }else {
             init();
@@ -47,7 +89,7 @@ public class MainActivity extends AppCompatActivity {
 
         vibrator = (Vibrator) getSystemService(Context.VIBRATOR_SERVICE);//這個震動期是由 getSystemService
         fswitch = findViewById(R.id.fswitch);
-
+        img = findViewById(R.id.img);
         //按開關切換開燈或關燈
         fswitch.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {//設置開關事件(切換按鈕監聽者)
             @Override
@@ -72,7 +114,10 @@ public class MainActivity extends AppCompatActivity {
     //初始化方法
     private  void init(){
         cameraManager = (CameraManager) getSystemService(Context.CAMERA_SERVICE);//取得相機管理員
-//        getCameraIdList(); 取得相機鏡頭有幾個
+
+        sdroot = Environment.getExternalStorageDirectory(); //取得sd卡外部檔案物件
+
+        // getCameraIdList(); 取得相機鏡頭有幾個
         try {
             String[] ids = cameraManager.getCameraIdList();
             for(String id : ids){
@@ -118,5 +163,44 @@ public class MainActivity extends AppCompatActivity {
         }else{
             vibrator.vibrate(patten, 0);//如果舊版本的話,無線震動
         }
+    }
+    //呼叫你手機的照相程式
+    public void test3(View view) {
+        Intent intent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);//intent(媒體商店裡的,相片動態捕捉)
+        startActivityForResult(intent,3); //開始連接intent(intent,跟指定的要求code)
+    }
+
+    //從data取得getExtras().裡面取得data訊息
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        if(resultCode ==RESULT_OK){
+            if(requestCode ==3){ //抓到code3的時候
+                Bundle bundle = data.getExtras();
+                //了解為什麼是Bitmap用反射方法回推
+              Set<String> keys = bundle.keySet(); //取得key
+              for(String key: keys){//尋訪
+                  Log.v("brad","key =" + key);
+                  Object obj = bundle.get(key); //把key存在obj物件
+                  Log.v("brad",obj.getClass().getName());//印出這個物件的類別跟名字
+              }
+                //取得你的照片存在程式上
+             Bitmap bmp = (Bitmap) data.getExtras().get("data");//照玩相傳過來的Bitmap物件實體
+                 img.setImageBitmap(bmp);//把照片顯示在程式上
+            }
+        }
+    }
+    //拍照後存檔
+    public void test4(View view) {
+        Uri photoURI = FileProvider.getUriForFile(
+                this, //1.這個activity
+                getPackageName() + ".provider",//2.這個pagename+檔案名
+                new File(sdroot, "iii.jpg")); //3.存放的file路徑("sdroot路徑實體","檔案照片名")
+
+        Intent intent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);//呼叫照片拍著時
+        intent.putExtra(android.provider.MediaStore.EXTRA_OUTPUT, photoURI);//掛上素質(1.外布檔案,2寫好的fileProvider路徑)
+        startActivityForResult(intent, 4);
+
+
     }
 }
