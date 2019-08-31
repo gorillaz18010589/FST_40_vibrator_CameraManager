@@ -7,13 +7,11 @@ package tw.brad.apps.brad40;
 // <uses-permission android:name="android.permission.CAMERA"/>相機權限因為燈光是靠相機來處理
 //如果我這裡面會用相機,如果沒有的別下載 <uses-feature android:name="android.hardware.camera"/>
 
-//呼叫別人的相機
-//android camera intent uri
+//按鈕３呼叫別人的相機
 
-
-//存取檔案
+//＊按鈕４拍照存檔
 //file porifder :https://blog.csdn.net/lmj623565791/article/details/72859156
-//（1）声明provider
+//（1）檔案總管聲明provider
 //（2）编写resource xml file
 //打開讀寫權限
 //<uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"/>
@@ -21,6 +19,10 @@ package tw.brad.apps.brad40;
 //在res底下新增xml資料夾在新增一個檔案
 //<!-- 改page名-->
 //檔案總管加入新的版本
+
+//1.打開相機物件實體
+//2.open id 鏡頭
+//3.開一個activity叫
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
@@ -34,6 +36,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.hardware.camera2.CameraAccessException;
 import android.hardware.camera2.CameraManager;
 import android.net.Uri;
@@ -186,7 +189,12 @@ public class MainActivity extends AppCompatActivity {
               }
                 //取得你的照片存在程式上
              Bitmap bmp = (Bitmap) data.getExtras().get("data");//照玩相傳過來的Bitmap物件實體
-                 img.setImageBitmap(bmp);//把照片顯示在程式上
+                 img.setImageBitmap(bmp);//把照片顯示在程式上，縮圖
+
+            }else if(requestCode ==4){//如果code是4的,這裡是test4按鈕的code
+                Bitmap bmp = BitmapFactory.decodeFile(sdroot.getAbsolutePath()+"/iii.jpg");//取得你檔案的(路徑圖片)，取得全圖
+                img.setImageBitmap(bmp); //顯示圖片
+
             }
         }
     }
@@ -194,13 +202,17 @@ public class MainActivity extends AppCompatActivity {
     public void test4(View view) {
         Uri photoURI = FileProvider.getUriForFile(
                 this, //1.這個activity
-                getPackageName() + ".provider",//2.這個pagename+檔案名
+                getPackageName() + ".provider",//2.授權
                 new File(sdroot, "iii.jpg")); //3.存放的file路徑("sdroot路徑實體","檔案照片名")
 
         Intent intent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);//呼叫照片拍著時
         intent.putExtra(android.provider.MediaStore.EXTRA_OUTPUT, photoURI);//掛上素質(1.外布檔案,2寫好的fileProvider路徑)
         startActivityForResult(intent, 4);
 
-
+    }
+    //引用自己寫的照相方法
+    public void test5(View view) {
+        Intent intent = new Intent(this,MyCameraXActivity.class);//跳轉照相頁面
+        startActivity(intent);
     }
 }
